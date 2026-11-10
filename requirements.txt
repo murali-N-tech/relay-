@@ -1,0 +1,8 @@
+# The Relay - Production-Grade AI Inference & RAG System
+# Zero heavy binary or C++ requirements: Runs out of the box on standard Python 3.10+
+
+# Standard library handles HTTP, JSON, asyncio, math, and sqlite.
+# Optional utilities for enhanced local development:
+requests>=2.31.0
+numpy>=1.24.0
+pytest>=7.4.0
