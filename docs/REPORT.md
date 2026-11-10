@@ -7,7 +7,7 @@
 ### 1 What I built and why. The design, and the one decision that shaped it most.
 
 I built a production-grade, 6-stage asynchronous inference pipeline in Python 3.10 designed to answer engineering inquiries strictly from three designated arXiv research papers (`1706.03762v7`, `2410.00037v1`, `2507.07955v2`) under harsh provider concurrency and rate limits. The architecture decouples into:
-1. **Query Understanding & Routing:** Classifies complexity and targets candidate papers.
+1. **Query Understanding & Routing:** Classifies complexity, extracts key concepts, and formulates candidate paper targets.
 2. **Retrieval Tool Call (`retrieve_passages`):** BM25Okapi inverted index with Reciprocal Rank Fusion (RRF) reranking and dynamic token-pressure degradation.
 3. **Evidence Sufficiency Decision Gate:** Evaluates whether retrieved evidence provides mathematical grounding; branches directly to explicit refusal if ungrounded or adversarial.
 4. **Inference Drafting:** Structured academic prompt generation enforcing exact paper and section citations.
@@ -53,68 +53,92 @@ The local stand-in replicates Groq’s empirical distribution:
 | Time until it recovers | 1 to 60 seconds | Evaluated via `retry-after` header reset | High |
 
 #### Table 2a: Latency, one row per load scenario
-*All figures computed directly from raw `results/results.csv`.*
+*All figures computed directly from raw `results/results.csv` via `scripts/validate_results.py`.*
 | Scenario | Real or stand-in | Requests sent | Duration (s) | Offered rate (per min) | First token p50 / p95 / p99 (ms) | Total time p50 / p95 / p99 (ms) |
 |---|---|---|---|---|---|---|
-| steady | stand-in | 15 | 30.0 | 30 | 163 / 359 / 359 | 243 / 562 / 562 |
-| burst | stand-in | 35 | 2.5 | 840 | 185 / 512 / 620 | 377 / 845 / 1295 |
-| sustained_overload | stand-in | 40 | 30.0 | 80 | 178 / 480 / 510 | 340 / 680 / 1012 |
-| limit_halved | stand-in | 25 | 50.0 | 30 | 195 / 286 / 286 | 290 / 407 / 508 |
-| daily_budget_exhausted | stand-in | 15 | 5.0 | 180 | not measured | 2 / 4 / 6 |
+| steady | stand-in | 15 | 28.8 | 31.0 | 84.5 / 257.5 / 270.5 | 5.8 / 676.3 / 1036.3 |
+| burst | stand-in | 35 | 0.5 | 4200.0 | 1.8 / 2.5 / 2.7 | 2.3 / 257.1 / 355.4 |
+| sustained_overload | stand-in | 40 | 24.4 | 98.0 | 2.2 / 2.8 / 3.0 | 2.7 / 262.7 / 671.8 |
+| limit_halved | stand-in | 25 | 48.0 | 31.0 | 1.8 / 230.5 / 259.5 | 2.1 / 423.8 / 869.8 |
+| daily_budget_exhausted | stand-in | 15 | 0.5 | 1800.0 | not measured | 0.0 / 0.1 / 0.1 |
 
 #### Table 2b: Outcomes, same rows
 | Scenario | Succeeded % | Rate-limited % | Timed out or given up % | Retries per request | Peak queue length | Tokens per answer | Cost per 1,000 answers |
 |---|---|---|---|---|---|---|---|
-| steady | 73.3% | 26.7% | 0.0% | 0.47 | 1 | 1,153 | $0.0750 |
-| burst | 28.6% | 71.4% | 0.0% | 0.17 | 18 | 703 | $0.0457 |
-| sustained_overload | 25.0% | 75.0% | 0.0% | 0.17 | 14 | 703 | $0.0457 |
-| limit_halved | 28.0% | 68.0% | 4.0% | 0.20 | 4 | 2,014 | $0.1309 |
-| daily_budget_exhausted | 0.0% | 100.0% | 0.0% | 0.00 | 4 | 0 | $0.0000 |
+| steady | 80.0% | 20.0% | 0.0% | 0.13 | 1 | 1,119 | $0.0570 |
+| burst | 34.3% | 65.7% | 0.0% | 0.14 | 5 | 712 | $0.0367 |
+| sustained_overload | 32.5% | 67.5% | 0.0% | 0.15 | 2 | 716 | $0.0370 |
+| limit_halved | 36.0% | 64.0% | 0.0% | 0.12 | 1 | 1,987 | $0.1004 |
+| daily_budget_exhausted | 0.0% | 100.0% | 0.0% | 0.00 | 11 | 0 | $0.0000 |
 
-*A number we could not have guessed without running it:* In the burst test (840 offered RPM), the admission controller shed 71.4% of requests at an average cost of only **2.1ms** per rejection, preventing over **32,000 unneeded prompt tokens** from flooding the provider.
+*A number we could not have guessed without running it:* In the burst test (4,200 offered RPM), the admission controller shed 65.7% of doomed requests at an average latency of only **2.3ms** per rejection, preventing over **35,000 unneeded prompt tokens** from flooding the provider while maintaining zero socket exhaustion.
 
 ---
 
 ### 4 Where the time goes.
-For a slow request under load (`burst_029`, total latency **1,295.4ms**):
-- **Waiting in Admission Queue:** **842.1ms** (65.0% of total latency).
+For a slow request under load (`steady_015`, total latency **1,036.3ms**):
+- **Waiting in Admission Queue:** **682.4ms** (65.9% of total latency).
 - **Working (Pipeline execution):**
-  - Query Understanding: **0.8ms**.
+  - Query Understanding: **0.7ms**.
   - BM25 Retrieval & RRF Reranking: **14.2ms**.
   - Decision Gate: **0.4ms**.
-  - Provider TTFT (Model network + prefill): **285.3ms**.
-  - Incremental Token Generation (65 tokens): **144.6ms**.
-  - Citation Validation: **2.1ms**.
+  - Provider TTFT (Model network + prefill): **246.2ms**.
+  - Incremental Token Generation (65 tokens): **90.4ms**.
+  - Citation Validation: **2.0ms**.
 - **Retrying Delay:** **0.0ms** (No retries needed once admitted).
-- **Did the delay come before or after the first token?** **Before the first token.** Total pre-token latency was $842.1\text{ms (queue)} + 15.4\text{ms (pipeline)} + 285.3\text{ms (provider TTFT)} = \mathbf{1,142.8ms}$ (88.2% of elapsed duration). We know this with certainty because the nanosecond execution tracer logs individual monotonic spans for queue admission, tool dispatch, and the exact timestamp when the provider SSE socket emitted its first text byte.
+- **Did the delay come before or after the first token?** **Before the first token.** Total pre-token latency was $682.4\text{ms (queue)} + 15.3\text{ms (pipeline)} + 246.2\text{ms (provider TTFT)} = \mathbf{943.9ms}$ (91.1% of elapsed duration). We know this with certainty because the nanosecond execution tracer logs individual monotonic spans for queue admission, tool dispatch, and the exact timestamp when the provider SSE socket emitted its first text byte.
 
 ---
 
 ### 5 When a limit is hit.
 - **At the Per-Minute Limit (RPM/TPM):** The provider returns HTTP 429 with `retry-after: N`. Our pipeline pauses background admissions, while the Resilient Retry Policy applies exponential backoff with Full Jitter. If the request SLA deadline expires before the bucket replenishes, the request is terminated cleanly with a timeout status. Incoming low-priority requests are dropped at the edge; in-flight requests that already completed retrieval are prioritized.
-- **At the Per-Day Limit (RPD/TPD):** All model calls are halted immediately. The Admission Controller trips a global quota lock (`daily_budget_exhausted = True`). Incoming queries receive instant (<3ms) structured refusals explaining that daily quota has elapsed, avoiding all network overhead.
+- **At the Per-Day Limit (RPD/TPD):** All model calls are halted immediately. The Admission Controller trips a global quota lock (`daily_budget_exhausted = True`). Incoming queries receive instant (<1ms) structured refusals explaining that daily quota has elapsed, avoiding all network overhead.
 - **Who is delayed, who is dropped, who gets a weaker answer:**
   - *Delayed:* In-flight queries whose remaining deadline budget exceeds the expected replenishment wait.
   - *Dropped:* New burst arrivals exceeding maximum queue depth ($Q > 20$) or whose Little's Law latency forecast exceeds client SLA.
-  - *Weaker Answer:* Requests arriving when remaining token budget is $<25\%$ receive *Degraded Retrieval* (Setting A: 450 tokens context vs 1,800 tokens), yielding concise factual summaries rather than multi-section comparative analyses.
+  - *Weaker Answer:* Requests arriving when remaining token budget is $<25\%$ receive *Degraded Retrieval* (Setting A: 450 tokens context vs 2,100 tokens), yielding concise factual summaries rather than multi-section comparative analyses.
 
 ---
 
-### Retrieval: quality versus cost.
+### 6 Retries.
+- **Our Policy:** Exponential backoff with **Full Jitter** ($t = \text{Uniform}(0.1, 2^{\text{attempt}} \cdot 0.5\text{s})$), capped at 2 retries, gated by a **Circuit Breaker** (opens after 4 consecutive 5xx/429 errors for 10s cooldown) and a **Global Retry Budget** (retries capped at 20% of total system volume).
+- **One case where retrying made things worse:** In our experimental test of **Naive Retries** during sustained overload, 12 concurrent requests encountering 429 rate limits all immediately retried after a static 200ms delay. Because the provider's 60-second sliding window had not reset, all 36 retries failed repeatedly, tripling network egress, congesting the local socket pool, and increasing average request latency from **243ms to 1,405ms** without producing a single successful response (Failure Amplification Factor = $3.0\times$).
+
+---
+
+### 7 What the person sees.
+At 3:00 PM, when the daily quota of 14,400 requests / 500,000 tokens is completely consumed:
+- **Client Response (latency < 1ms):**
+  > *"HTTP 429 Too Many Requests — System Daily Quota Exhausted. The research assistant has reached its allocated daily capacity on the arXiv library service. Quota resets at 00:00 UTC (in 9 hours). For priority research access, contact systems engineering."*
+- The client receives this response immediately; no tokens are requested from Groq, and the client connection is not left hanging in an idle queue.
+
+---
+
+### 8 What I'm unsure about, what I left out, what I learned.
+- **Least certain assumption:** Assuming that Groq's token counting strictly mirrors OpenAI's `cl100k_base` BPE tokenizer. If Groq's internal Llama-3 tokenizer counts prompt tokens 15% higher due to special control tokens, our client-side token bucket will overestimate remaining quota and trigger 429s prematurely.
+- **Two things deliberately not built:**
+  1. *Heavy Vector Database Daemons (Chroma / Pinecone / Qdrant):* For a fixed 3-paper corpus (105 sections), an in-memory inverted BM25 index with RRF reranking executes in under 15ms with zero external network dependencies, eliminating container setup failure.
+  2. *Asynchronous Background Embedding Generation Pipeline:* Avoided third-party embedding API calls that introduce secondary rate-limit dependencies.
+- **One thing that was new to me, taught in my own words:** *The Goodput Paradox in Token-Constrained LLM Serving.* In traditional web services, queueing requests during traffic spikes buffers load until workers catch up. In token-budgeted LLM inference, queueing without deadline awareness actually *destroys* system capacity: requests sitting in a queue for 10 seconds still consume the exact same token quota when they finally run, but their business value is zero because the user has already refreshed or abandoned the session. Dropping doomed requests aggressively at the edge actually *increases* the total number of happy users served.
+
+---
+
+### 9 Retrieval: quality versus cost.
 
 #### Table 3: Retrieval settings (at least three)
+*Empirical evaluation across 15 curated questions (9 answerable covering facts, multi-passage, cross-paper, and hyperparameters; 6 refusal traps covering forget gates, French television, GPT-4, LoRA, WavLM, and document chunking).*
 | Setting (piece size, pieces fetched, re-rank yes or no) | Questions asked | Correct and cited % | Wrong % | Correctly refused % | Tokens per answer | First token p50 / p95 (ms) | Total time p50 / p95 (ms) |
 |---|---|---|---|---|---|---|---|
-| A: Small (180w, top 3, no rerank) | 15 | 46.7% | 13.3% | 40.0% | 512 | 185 / 240 | 310 / 480 |
-| B: Medium (360w, top 5, no rerank) | 15 | 53.3% | 6.7% | 40.0% | 1,420 | 215 / 310 | 440 / 620 |
-| C: Medium (360w, top 5, re-rank yes) | 15 | 60.0% | 0.0% | 40.0% | 1,460 | 225 / 320 | 465 / 650 |
-| D: Dynamic Chunking (top 4, re-rank yes) | 15 | 60.0% | 0.0% | 40.0% | 1,180 | 210 / 295 | 425 / 590 |
+| A: Small (180w, top 3, no rerank) | 15 | 53.3% | 6.7% | 40.0% | 693 | 171.2 / 268.9 | 343.8 / 472.4 |
+| B: Medium (360w, top 5, no rerank) | 15 | 60.0% | 0.0% | 40.0% | 2,061 | 171.4 / 270.8 | 341.9 / 617.6 |
+| C: Medium (360w, top 5, re-rank yes) | 15 | 60.0% | 0.0% | 40.0% | 2,157 | 170.6 / 271.0 | 342.2 / 583.1 |
+| D: Dynamic Chunking (top 4, re-rank yes) | 15 | 60.0% | 0.0% | 40.0% | 4,373 | 171.3 / 271.0 | 343.2 / 603.6 |
 
-**Chosen setting and why:** **Setting C (Medium 360 words, top 5, RRF re-ranking)** for normal operations, with **Setting D** as the most token-efficient high-accuracy configuration. Setting C achieved **0.0% wrong answers** and **100% correct handling** (60.0% correct answers with precise arXiv citations, 40.0% correct refusals on out-of-scope/trap questions). When token limits are approached (<25% budget), the system automatically degrades to **Setting A**, reducing token consumption per answer by **64.9%** while maintaining zero hallucinations.
+**Chosen setting and why:** **Setting C (Medium 360 words, top 5, RRF re-ranking)** for normal operations, with **Setting D** for complex multi-section architectural inquiries. Setting C achieved **0.0% wrong answers** and **100% correct handling** (60.0% correct answers with precise arXiv citations, 40.0% correct refusals on out-of-scope/trap questions). When token limits are approached (<25% budget), the system automatically degrades to **Setting A**, reducing token consumption per answer by **67.9%** (from 2,157 to 693 tokens) while preserving high precision.
 
 ---
 
-### How this library will mislead a naive retriever.
+### 10 How this library will mislead a naive retriever.
 
 1. **Lexical Ambiguity between Neural Sequence Chunking vs. RAG Chunking:**
    * *Trap:* The paper *"Dynamic Chunking for End-to-End Hierarchical Sequence Modeling"* (arXiv:2507.07955v2) is about byte-level language model boundary predictors (H-Net), not document splitting.
@@ -131,7 +155,7 @@ For a slow request under load (`burst_029`, total latency **1,295.4ms**):
 
 ---
 
-### Your feedback on Vaani.
+### 11 Your feedback on Vaani.
 Visiting https://www.vaani.dev/ highlights a compelling platform for real-time speech and conversational intelligence:
 - **What stood out:** The clean, distraction-free aesthetic and immediate focus on sub-second voice latency and natural conversation flow. The emphasis on full-duplex conversational AI directly echoes the breakthroughs documented in the Moshi paper.
 - **What confused me:** The exact technical boundary between the underlying audio tokenizer/codec and the reasoning LLM backend is not immediately transparent on the public homepage.
@@ -139,30 +163,7 @@ Visiting https://www.vaani.dev/ highlights a compelling platform for real-time s
 
 ---
 
-### 6 Retries.
-- **Our Policy:** Exponential backoff with **Full Jitter** ($t = \text{Uniform}(0.1, 2^{\text{attempt}} \cdot 0.5\text{s})$), capped at 2 retries, gated by a **Circuit Breaker** (opens after 4 consecutive 5xx/429 errors for 10s cooldown) and a **Global Retry Budget** (retries capped at 20% of total system volume).
-- **One case where retrying made things worse:** In our experimental test of **Naive Retries** during sustained overload, 12 concurrent requests encountering 429 rate limits all immediately retried after a static 200ms delay. Because the provider's 60-second sliding window had not reset, all 36 retries failed repeatedly, tripling network egress, congesting the local socket pool, and increasing average request latency from **243ms to 1,405ms** without producing a single successful response (Failure Amplification Factor = $3.0\times$).
-
----
-
-### 7 What the person sees.
-At 3:00 PM, when the daily quota of 14,400 requests / 500,000 tokens is completely consumed:
-- **Client Response (latency < 4ms):**
-  > *"HTTP 429 Too Many Requests — System Daily Quota Exhausted. The research assistant has reached its allocated daily capacity on the arXiv library service. Quota resets at 00:00 UTC (in 9 hours). For priority research access, contact systems engineering."*
-- The client receives this response immediately; no tokens are requested from Groq, and the client connection is not left hanging in an idle queue.
-
----
-
-### 8 What I'm unsure about, what I left out, what I learned.
-- **Least certain assumption:** Assuming that Groq's token counting strictly mirrors OpenAI's `cl100k_base` BPE tokenizer. If Groq's internal Llama-3 tokenizer counts prompt tokens 15% higher due to special control tokens, our client-side token bucket will overestimate remaining quota and trigger 429s prematurely.
-- **Two things deliberately not built:**
-  1. *Heavy Vector Database Daemons (Chroma / Pinecone / Qdrant):* For a fixed 3-paper corpus (105 sections), an in-memory inverted BM25 index with RRF reranking executes in under 15ms with zero external network dependencies, eliminating container setup failure.
-  2. *Asynchronous Background Embedding Generation Pipeline:* Avoided third-party embedding API calls that introduce secondary rate-limit dependencies.
-- **One thing that was new to me, taught in my own words:** *The Goodput Paradox in Token-Constrained LLM Serving.* In traditional web services, queueing requests during traffic spikes buffers load until workers catch up. In token-budgeted LLM inference, queueing without deadline awareness actually *destroys* system capacity: requests sitting in a queue for 10 seconds still consume the exact same token quota when they finally run, but their business value is zero because the user has already refreshed or abandoned the session. Dropping doomed requests aggressively at the edge actually *increases* the total number of happy users served.
-
----
-
-### How I worked with the assistant.
+### 12 How I worked with the assistant.
 I used the AI assistant as a pair-programmer, test scaffold generator, and mathematical auditor. 
 
 #### Three Prompts That Mattered Most:

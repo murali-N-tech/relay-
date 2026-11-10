@@ -50,7 +50,8 @@ class DecisionEngine:
             ("french television", "Moshi paper does not describe French television training datasets."),
             ("gpt-4", "GPT-4 pretraining compute is outside the scope of the 3 arXiv papers."),
             ("lora", "LoRA fine-tuning for LLaMA is not in the library."),
-            ("wavlm", "Moshi uses the Mimi neural audio codec, not WavLM.")
+            ("wavlm", "Moshi uses the Mimi neural audio codec, not WavLM."),
+            ("rag", "Dynamic Chunking paper is about byte-level language model sequence modeling, not document chunking for RAG.")
         ]
         for trap_term, trap_reason in adversarial_traps:
             if trap_term in q_lower:

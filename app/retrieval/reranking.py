@@ -43,6 +43,8 @@ def rerank_passages(
     q_terms = tokenize(query)
 
     # Rank 1: Original BM25 ordering
+    bm25_scores = {chunk.chunk_id: score for chunk, score in candidates}
+    chunk_map = {chunk.chunk_id: chunk for chunk, _ in candidates}
     bm25_ranks = {chunk.chunk_id: rank + 1 for rank, (chunk, _) in enumerate(candidates)}
 
     # Rank 2: Density ordering
@@ -56,13 +58,12 @@ def rerank_passages(
     density_ranks = {chunk.chunk_id: rank + 1 for rank, (chunk, _) in enumerate(scored_by_density)}
 
     # Merge via RRF
-    chunk_map = {chunk.chunk_id: chunk for chunk, _ in candidates}
     rrf_scores = {}
-    for cid, chunk in chunk_map.items():
+    for cid in chunk_map:
         r1 = bm25_ranks[cid]
         r2 = density_ranks[cid]
         rrf = (1.0 / (rrf_k + r1)) + (1.0 / (rrf_k + r2))
         rrf_scores[cid] = rrf
 
-    sorted_res = sorted(rrf_scores.items(), key=lambda x: x[1], reverse=True)[:top_k]
-    return [(chunk_map[cid], score) for cid, score in sorted_res]
+    sorted_cids = sorted(rrf_scores.keys(), key=lambda cid: rrf_scores[cid], reverse=True)[:top_k]
+    return [(chunk_map[cid], bm25_scores[cid]) for cid in sorted_cids]

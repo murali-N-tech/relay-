@@ -1,0 +1,145 @@
+{
+  "table_2a": [
+    {
+      "scenario": "steady",
+      "source": "stand-in",
+      "sent": 15,
+      "duration_s": 28.8,
+      "offered_rate": 31.0,
+      "ttft": "84.5 / 257.5 / 270.5",
+      "total": "5.8 / 676.3 / 1036.3"
+    },
+    {
+      "scenario": "burst",
+      "source": "stand-in",
+      "sent": 35,
+      "duration_s": 0.5,
+      "offered_rate": 4200.0,
+      "ttft": "1.8 / 2.5 / 2.7",
+      "total": "2.3 / 257.1 / 355.4"
+    },
+    {
+      "scenario": "sustained_overload",
+      "source": "stand-in",
+      "sent": 40,
+      "duration_s": 24.4,
+      "offered_rate": 98.0,
+      "ttft": "2.2 / 2.8 / 3.0",
+      "total": "2.7 / 262.7 / 671.8"
+    },
+    {
+      "scenario": "limit_halved",
+      "source": "stand-in",
+      "sent": 25,
+      "duration_s": 48.0,
+      "offered_rate": 31.0,
+      "ttft": "1.8 / 230.5 / 259.5",
+      "total": "2.1 / 423.8 / 869.8"
+    },
+    {
+      "scenario": "daily_budget_exhausted",
+      "source": "stand-in",
+      "sent": 15,
+      "duration_s": 0.5,
+      "offered_rate": 1800.0,
+      "ttft": "not measured",
+      "total": "0.0 / 0.1 / 0.1"
+    }
+  ],
+  "table_2b": [
+    {
+      "scenario": "steady",
+      "succeeded_pct": 80.0,
+      "rate_limited_pct": 20.0,
+      "timed_out_pct": 0.0,
+      "retries_per_req": 0.13,
+      "peak_queue": 1,
+      "tokens_per_answer": 1119.0,
+      "cost_per_1k": 0.057
+    },
+    {
+      "scenario": "burst",
+      "succeeded_pct": 34.3,
+      "rate_limited_pct": 65.7,
+      "timed_out_pct": 0.0,
+      "retries_per_req": 0.14,
+      "peak_queue": 5,
+      "tokens_per_answer": 712.0,
+      "cost_per_1k": 0.0367
+    },
+    {
+      "scenario": "sustained_overload",
+      "succeeded_pct": 32.5,
+      "rate_limited_pct": 67.5,
+      "timed_out_pct": 0.0,
+      "retries_per_req": 0.15,
+      "peak_queue": 2,
+      "tokens_per_answer": 716.0,
+      "cost_per_1k": 0.037
+    },
+    {
+      "scenario": "limit_halved",
+      "succeeded_pct": 36.0,
+      "rate_limited_pct": 64.0,
+      "timed_out_pct": 0.0,
+      "retries_per_req": 0.12,
+      "peak_queue": 1,
+      "tokens_per_answer": 1987.0,
+      "cost_per_1k": 0.1004
+    },
+    {
+      "scenario": "daily_budget_exhausted",
+      "succeeded_pct": 0.0,
+      "rate_limited_pct": 100.0,
+      "timed_out_pct": 0.0,
+      "retries_per_req": 0.0,
+      "peak_queue": 11,
+      "tokens_per_answer": 0,
+      "cost_per_1k": 0.0
+    }
+  ],
+  "table_3": [
+    {
+      "setting": "A: Small (180w, top 3, no rerank)",
+      "asked": 15,
+      "cited_pct": 53.333333333333336,
+      "wrong_pct": 6.666666666666667,
+      "refused_pct": 40.0,
+      "tokens_per_answer": 693.0,
+      "ttft": "171.2 / 268.9",
+      "total": "343.8 / 472.4"
+    },
+    {
+      "setting": "B: Medium (360w, top 5, no rerank)",
+      "asked": 15,
+      "cited_pct": 60.0,
+      "wrong_pct": 0.0,
+      "refused_pct": 40.0,
+      "tokens_per_answer": 2061.0,
+      "ttft": "171.4 / 270.8",
+      "total": "341.9 / 617.6"
+    },
+    {
+      "setting": "C: Medium (360w, top 5, rerank yes)",
+      "asked": 15,
+      "cited_pct": 60.0,
+      "wrong_pct": 0.0,
+      "refused_pct": 40.0,
+      "tokens_per_answer": 2157.0,
+      "ttft": "170.6 / 271.0",
+      "total": "342.2 / 583.1"
+    },
+    {
+      "setting": "D: Dynamic Chunking (top 4, rerank)",
+      "asked": 15,
+      "cited_pct": 60.0,
+      "wrong_pct": 0.0,
+      "refused_pct": 40.0,
+      "tokens_per_answer": 4373.0,
+      "ttft": "171.3 / 271.0",
+      "total": "343.2 / 603.6"
+    }
+  ],
+  "total_requests_recorded": 214,
+  "pricing_reference": "Groq Llama-3.1-8b-instant ($0.05/1M in, $0.08/1M out)"
+}

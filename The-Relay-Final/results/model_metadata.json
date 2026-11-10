@@ -1,0 +1,13 @@
+{
+  "provider": "Groq",
+  "model": "llama-3.1-8b-instant",
+  "api_key_configured": false,
+  "documented_limits": {
+    "rpm": 30,
+    "tpm": 14400,
+    "rpd": 14400,
+    "tpd": 500000,
+    "max_concurrency": 3
+  },
+  "status": "Awaiting GROQ_API_KEY from user for live hosted calibration."
+}

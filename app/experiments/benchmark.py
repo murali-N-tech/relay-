@@ -198,7 +198,7 @@ class BenchmarkSuite:
         settings = ["A", "B", "C", "D"]
 
         for setting in settings:
-            provider = base_provider_factory() if base_provider_factory else StandinProvider(seed=42)
+            provider = base_provider_factory() if base_provider_factory else StandinProvider(limits=ProviderLimits(rpm=100, tpm=100000), seed=42)
             orchestrator = PipelineOrchestrator(
                 provider=provider,
                 retriever=self.retriever,

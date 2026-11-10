@@ -1,0 +1,152 @@
+[
+  {
+    "id": "Q01",
+    "category": "direct_fact",
+    "question": "What BLEU score did the Transformer achieve on the WMT 2014 English-to-German translation task, and how many GPUs were used to train the base model?",
+    "target_paper": "1706.03762v7",
+    "target_section": "Section: Results",
+    "expected_answer_keywords": ["28.4", "BLEU", "8", "GPUs", "3.5 days"],
+    "must_refuse": false,
+    "notes": "Direct factual question from Attention Is All You Need."
+  },
+  {
+    "id": "Q02",
+    "category": "direct_fact",
+    "question": "What is the theoretical latency and practical latency of Moshi, and what is the acoustic frame rate of the Mimi codec?",
+    "target_paper": "2410.00037v1",
+    "target_section": "Section: Overview",
+    "expected_answer_keywords": ["160ms", "200ms", "12.5 Hz"],
+    "must_refuse": false,
+    "notes": "Direct factual question from Moshi paper."
+  },
+  {
+    "id": "Q03",
+    "category": "direct_fact",
+    "question": "How does H-Net with dynamic chunking compare to a token-based Transformer language model on DNA sequences in terms of data efficiency?",
+    "target_paper": "2507.07955v2",
+    "target_section": "Section: Overview",
+    "expected_answer_keywords": ["4x", "improvement", "data efficiency", "DNA sequences"],
+    "must_refuse": false,
+    "notes": "Direct factual claim from Dynamic Chunking abstract and experiments."
+  },
+  {
+    "id": "Q04",
+    "category": "multi_passage",
+    "question": "In Attention Is All You Need, why did the authors use dot-product attention instead of additive attention, and what scaling factor was introduced to prevent small gradients?",
+    "target_paper": "1706.03762v7",
+    "target_section": "Section: Scaled Dot-Product Attention",
+    "expected_answer_keywords": ["faster", "space-efficient", "matrix multiplication", "1/sqrt(d_k)", "scaling factor"],
+    "must_refuse": false,
+    "notes": "Requires combining Section 3.2.1 explanations on dot-product attention speed and dimensional scaling."
+  },
+  {
+    "id": "Q05",
+    "category": "multi_passage",
+    "question": "Explain the concept of 'Inner Monologue' in Moshi: what tokens are predicted before audio tokens, and what modalities does it enable?",
+    "target_paper": "2410.00037v1",
+    "target_section": "Section: Model Architecture",
+    "expected_answer_keywords": ["time-aligned text tokens", "prefix", "audio tokens", "streaming speech recognition", "ASR", "TTS"],
+    "must_refuse": false,
+    "notes": "Key design innovation in Moshi."
+  },
+  {
+    "id": "Q06",
+    "category": "cross_paper",
+    "question": "How does the Dynamic Chunking H-Net paper argue against the standard BPE tokenization used by the original Transformer architecture?",
+    "target_paper": "2507.07955v2",
+    "target_section": "Section: Introduction",
+    "expected_answer_keywords": ["pre-processing", "tokenization", "barrier", "end-to-end", "BPE", "character-level robustness"],
+    "must_refuse": false,
+    "notes": "Synthesizes architectural contrast between Transformer tokenization and H-Net."
+  },
+  {
+    "id": "Q07",
+    "category": "direct_fact",
+    "question": "What is the dimensional size d_model and number of attention heads in the Transformer Base model?",
+    "target_paper": "1706.03762v7",
+    "target_section": "Section: Model Architecture",
+    "expected_answer_keywords": ["512", "8 heads", "64"],
+    "must_refuse": false,
+    "notes": "Attention Is All You Need Table 3 base configuration."
+  },
+  {
+    "id": "Q08",
+    "category": "direct_fact",
+    "question": "What neural audio codec does Moshi rely on, how many codebooks does it use, and what is its latent bandwidth?",
+    "target_paper": "2410.00037v1",
+    "target_section": "Section: Mimi",
+    "expected_answer_keywords": ["Mimi", "8 codebooks", "residual vector quantization", "1.1 kbps"],
+    "must_refuse": false,
+    "notes": "Architecture of Mimi neural audio codec."
+  },
+  {
+    "id": "Q09",
+    "category": "direct_fact",
+    "question": "In Dynamic Chunking, what loss function or objective is used to learn boundary decisions without explicit chunk supervision?",
+    "target_paper": "2507.07955v2",
+    "target_section": "Section: Method",
+    "expected_answer_keywords": ["jointly", "end-to-end", "without explicit supervision", "boundary predictor"],
+    "must_refuse": false,
+    "notes": "How H-Net learns dynamic chunk boundaries."
+  },
+  {
+    "id": "Q10",
+    "category": "lexical_trap",
+    "question": "What is the recommended chunk overlap and chunk size for dynamic chunking when splitting documents in RAG?",
+    "target_paper": "2507.07955v2",
+    "target_section": "None",
+    "expected_answer_keywords": ["not discussed", "refuse", "unsupported"],
+    "must_refuse": true,
+    "notes": "Lexical trap: The paper 'Dynamic Chunking' is about neural hierarchical sequence modeling for byte-level language models, NOT document chunking for retrieval systems. The system must refuse."
+  },
+  {
+    "id": "Q11",
+    "category": "lexical_trap",
+    "question": "In Attention Is All You Need, what is the forget gate bias initialization value in the Transformer recurrent cell?",
+    "target_paper": "1706.03762v7",
+    "target_section": "None",
+    "expected_answer_keywords": ["no recurrence", "refuse", "not used"],
+    "must_refuse": true,
+    "notes": "Lexical trap: Transformers dispense with recurrence and convolutions entirely. There are no forget gates or recurrent cells."
+  },
+  {
+    "id": "Q12",
+    "category": "lexical_trap",
+    "question": "How many speech tokens per second does the WavLM model generate when plugged into the Moshi conversational pipeline?",
+    "target_paper": "2410.00037v1",
+    "target_section": "None",
+    "expected_answer_keywords": ["WavLM not used", "refuse", "Mimi"],
+    "must_refuse": true,
+    "notes": "Lexical trap: Moshi uses Mimi codec, not WavLM. The paper does not use WavLM."
+  },
+  {
+    "id": "Q13",
+    "category": "out_of_scope",
+    "question": "What were the pretraining compute cost and parameter count for OpenAI's GPT-4 in petaflop-days?",
+    "target_paper": "None",
+    "target_section": "None",
+    "expected_answer_keywords": ["cannot answer", "not in papers", "refuse"],
+    "must_refuse": true,
+    "notes": "Completely out of scope; must refuse strictly."
+  },
+  {
+    "id": "Q14",
+    "category": "out_of_scope",
+    "question": "How many hours of spoken French television news were used to train the Moshi baseline voice model?",
+    "target_paper": "2410.00037v1",
+    "target_section": "None",
+    "expected_answer_keywords": ["not mentioned", "cannot answer", "refuse"],
+    "must_refuse": true,
+    "notes": "Out of scope / unmentioned detail; Moshi was trained primarily on English conversational data."
+  },
+  {
+    "id": "Q15",
+    "category": "out_of_scope",
+    "question": "What is the optimal learning rate schedule for LoRA fine-tuning of the LLaMA-3 architecture?",
+    "target_paper": "None",
+    "target_section": "None",
+    "expected_answer_keywords": ["not contained in library", "refuse"],
+    "must_refuse": true,
+    "notes": "Out of scope; neither LoRA nor LLaMA-3 are in the three arXiv papers."
+  }
+]

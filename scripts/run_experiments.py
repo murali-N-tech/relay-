@@ -13,7 +13,7 @@ import time
 # Ensure project root is in sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from app.config import CONFIG
+from app.config import CONFIG, ProviderLimits
 from app.providers.standin_provider import StandinProvider
 from app.providers.groq_provider import GroqProvider
 from app.experiments.benchmark import BenchmarkSuite
@@ -61,7 +61,7 @@ async def run_all():
     await suite.run_scenario_daily_budget_exhausted(standin, total_requests=15)
 
     # 6. Retrieval Setting Comparisons (Settings A, B, C, D on 15 questions)
-    await suite.run_retrieval_experiments(lambda: StandinProvider(seed=42))
+    await suite.run_retrieval_experiments(lambda: StandinProvider(limits=ProviderLimits(rpm=100, tpm=100000), seed=42))
 
     # 7. Retry Storm & Failure Amplification Experiment
     await suite.run_retry_storm_experiment(standin)
